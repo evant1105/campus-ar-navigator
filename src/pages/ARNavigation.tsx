@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, MapPin, RotateCcw, Volume2, VolumeX, X, Navigation } from 'lucide-react';
+import { MapPin, RotateCcw, Volume2, VolumeX, X, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigation } from '@/contexts/NavigationContext';
 import ARSafetyModal from '@/components/ARSafetyModal';
@@ -14,7 +14,13 @@ const ARNavigation: React.FC = () => {
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [showSafetyModal, setShowSafetyModal] = useState(false);
+  
+  // FIX: Initialize state directly from localStorage to ensure modal appears immediately
+  const [showSafetyModal, setShowSafetyModal] = useState(() => {
+    const accepted = localStorage.getItem('arSafetyAccepted');
+    return !accepted; // If not accepted ('true'), show modal
+  });
+
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [audioEnabled, setAudioEnabled] = useState(true);
@@ -22,20 +28,48 @@ const ARNavigation: React.FC = () => {
   const [distanceToNext, setDistanceToNext] = useState(25);
   const [estimatedTime, setEstimatedTime] = useState('3 min');
 
-  // Initial Safety Check & State Setup
-  useEffect(() => {
-    const safetyAccepted = localStorage.getItem('arSafetyAccepted');
-    
-    if (!safetyAccepted) {
-      setShowSafetyModal(true);
-    } else {
-      // If warning already accepted, start everything immediately
-      startCamera();
-      setIsNavigating(true); // IMPORTANT: Ensure navigation UI is active
-    }
-  }, []);
+  // Camera & Navigation Start Logic
+  const startARSession = useCallback(async () => {
+    setIsNavigating(true);
+    try {
+      const constraints = {
+        video: { 
+          facingMode: { ideal: 'environment' }, 
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      };
 
-  // Navigation Logic (Simulated)
+      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      setStream(mediaStream);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        videoRef.current.onloadeddata = () => {
+          setCameraReady(true);
+          setCameraError(null);
+        };
+      }
+    } catch (error) {
+      console.error('Camera error:', error);
+      setCameraError('Please allow camera access to use AR features.');
+      toast({
+        title: "Camera Access Required",
+        description: "We couldn't access your camera. Please check your settings.",
+        variant: "destructive",
+      });
+    }
+  }, [setIsNavigating, toast]);
+
+  // Effect to trigger start ONLY if modal is not shown
+  useEffect(() => {
+    if (!showSafetyModal && !stream) {
+      startARSession();
+    }
+  }, [showSafetyModal, stream, startARSession]);
+
+  // Navigation Simulation
   useEffect(() => {
     if (!isNavigating || !cameraReady) return;
     
@@ -62,38 +96,6 @@ const ARNavigation: React.FC = () => {
     return () => clearInterval(interval);
   }, [isNavigating, destination, cameraReady]);
 
-  const startCamera = useCallback(async () => {
-    try {
-      const constraints = {
-        video: { 
-          facingMode: { ideal: 'environment' }, 
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: false
-      };
-
-      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-      setStream(mediaStream);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        videoRef.current.onloadeddata = () => {
-          setCameraReady(true);
-          setCameraError(null);
-        };
-      }
-    } catch (error) {
-      console.error('Camera error:', error);
-      setCameraError('Please allow camera access to use AR features.');
-      toast({
-        title: "Camera Error",
-        description: "We couldn't access your camera. Please check your settings.",
-        variant: "destructive",
-      });
-    }
-  }, [toast]);
-
   const stopCamera = useCallback(() => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
@@ -108,8 +110,7 @@ const ARNavigation: React.FC = () => {
 
   const handleSafetyAccept = () => {
     setShowSafetyModal(false);
-    startCamera();
-    setIsNavigating(true);
+    // Camera will start automatically via the useEffect above when showSafetyModal becomes false
   };
 
   const handleCloseCamera = useCallback(() => {
@@ -152,7 +153,7 @@ const ARNavigation: React.FC = () => {
             <span className="text-white font-bold text-2xl mt-6 bg-green-600 px-8 py-3 rounded-xl shadow-lg border border-green-400">You've Arrived!</span>
           </div>
         );
-      default: // Straight
+      default:
         return (
           <div className="nav-arrow flex flex-col items-center animate-pulse">
             <svg width="120" height="120" viewBox="0 0 80 80" className={`text-white fill-none stroke-current ${arrowStyle}`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
@@ -167,14 +168,14 @@ const ARNavigation: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-black mobile-container">
-      {/* Safety Warning Modal */}
+      {/* Safety Warning Modal - Highest Z-Index */}
       {showSafetyModal && (
         <ARSafetyModal onAccept={handleSafetyAccept} onCancel={() => navigate('/home')} />
       )}
 
       {/* Main View Area */}
       <div className="relative w-full h-full">
-        {/* Close Button - Always visible for safety */}
+        {/* Close Button */}
         {!showSafetyModal && (
           <button
             onClick={handleCloseCamera}
@@ -192,7 +193,7 @@ const ARNavigation: React.FC = () => {
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-3">Camera Unavailable</h2>
             <p className="text-muted-foreground mb-8 text-lg">{cameraError}</p>
-            <Button onClick={startCamera} size="lg" className="w-full h-14 text-lg rounded-xl">
+            <Button onClick={startARSession} size="lg" className="w-full h-14 text-lg rounded-xl">
               <RotateCcw className="w-5 h-5 mr-2" />
               Retry Camera
             </Button>
@@ -239,7 +240,6 @@ const ARNavigation: React.FC = () => {
                   </div>
                 </div>
                 
-                {/* Audio Button */}
                 <button
                   onClick={() => setAudioEnabled(!audioEnabled)}
                   className="w-14 h-14 rounded-2xl bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto active:scale-95 transition-transform"
