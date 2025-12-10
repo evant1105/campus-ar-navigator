@@ -12,68 +12,88 @@ const ARNavigation: React.FC = () => {
   const { toast } = useToast();
   const { destination, isNavigating, setIsNavigating } = useNavigation();
   
+  // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
   
-  // FIX: Initialize state directly from localStorage function
-  // This prevents the camera from starting for a split second if the value exists
-  const [showSafetyModal, setShowSafetyModal] = useState(() => {
-    const accepted = localStorage.getItem('arSafetyAccepted');
-    return accepted !== 'true'; // Show modal if NOT 'true'
-  });
-
+  // State
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  
+  // Modal State (Lazy init to prevent flicker)
+  const [showSafetyModal, setShowSafetyModal] = useState(() => {
+    const accepted = localStorage.getItem('arSafetyAccepted');
+    return accepted !== 'true'; 
+  });
+
+  // Navigation UI State
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [currentDirection, setCurrentDirection] = useState('straight');
   const [distanceToNext, setDistanceToNext] = useState(25);
   const [estimatedTime, setEstimatedTime] = useState('3 min');
 
-  // Start Camera Logic
-  const startARSession = useCallback(async () => {
-    // Only start if modal is NOT shown
-    if (showSafetyModal) return;
+  // --- 1. Camera Initialization ---
+  const startCamera = useCallback(async () => {
+    if (showSafetyModal) return; // Don't start if modal is open
 
     setIsNavigating(true);
+    setCameraError(null);
+
     try {
       const constraints = {
         video: { 
-          facingMode: { ideal: 'environment' }, 
+          facingMode: { ideal: 'environment' }, // Rear camera
           width: { ideal: 1280 },
           height: { ideal: 720 }
         },
         audio: false
       };
 
+      console.log("Starting camera...");
       const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
       setStream(mediaStream);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        videoRef.current.onloadeddata = () => {
-          setCameraReady(true);
-          setCameraError(null);
-        };
-      }
     } catch (error) {
-      console.error('Camera error:', error);
-      setCameraError('Please allow camera access to use AR features.');
+      console.error('Camera access error:', error);
+      setCameraError('Unable to access camera. Please check permissions.');
       toast({
-        title: "Camera Access Required",
-        description: "We couldn't access your camera. Please check your settings.",
+        title: "Camera Failed",
+        description: "Could not access the camera. Please check settings.",
         variant: "destructive",
       });
     }
-  }, [setIsNavigating, toast, showSafetyModal]);
+  }, [showSafetyModal, setIsNavigating, toast]);
 
-  // Trigger camera start ONLY when modal is dismissed/not shown
+  // --- 2. Attach Stream to Video ---
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      const video = videoRef.current;
+      video.srcObject = stream;
+      
+      // Critical for mobile: Explicitly play when metadata loads
+      video.onloadedmetadata = () => {
+        video.play()
+          .then(() => {
+            console.log("Video playing");
+            setCameraReady(true);
+          })
+          .catch(e => {
+            console.error("Play error:", e);
+            // Sometimes interacting with the page helps, but autoPlay attr usually handles this
+          });
+      };
+    }
+  }, [stream]);
+
+  // --- 3. Lifecycle Management ---
+  
+  // Start camera when modal closes
   useEffect(() => {
     if (!showSafetyModal && !stream) {
-      startARSession();
+      startCamera();
     }
-  }, [showSafetyModal, stream, startARSession]);
+  }, [showSafetyModal, stream, startCamera]);
 
-  // Cleanup
+  // Stop camera on unmount or close
   const stopCamera = useCallback(() => {
     if (stream) {
       stream.getTracks().forEach(track => track.stop());
@@ -86,218 +106,184 @@ const ARNavigation: React.FC = () => {
     return () => stopCamera();
   }, [stopCamera]);
 
-  // Navigation Simulation
-  useEffect(() => {
-    if (!isNavigating || !cameraReady) return;
-    
-    const directions = ['straight', 'left', 'right', 'arrived'];
-    let index = 0;
-    
-    const interval = setInterval(() => {
-      if (index < directions.length - 1) {
-        index++;
-        setCurrentDirection(directions[index]);
-        setDistanceToNext(Math.max(5, distanceToNext - 8));
-        
-        if (directions[index] === 'arrived') {
-          toast({
-            title: "You've arrived!",
-            description: destination?.name || "Your destination",
-            className: "bg-green-600 text-white border-none",
-          });
-          setIsNavigating(false);
-        }
-      }
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, [isNavigating, destination, cameraReady]);
-
-  const handleSafetyAccept = () => {
-    setShowSafetyModal(false);
-    // The useEffect above will detect this change and start the camera
-  };
-
-  const handleCloseCamera = useCallback(() => {
+  const handleCloseCamera = () => {
     stopCamera();
     setIsNavigating(false);
     navigate('/home');
-  }, [stopCamera, setIsNavigating, navigate]);
+  };
 
-  const getDirectionArrow = () => {
-    // ... (Arrow logic remains the same)
-    const arrowStyle = "drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]";
-    const labelStyle = "text-white font-bold text-2xl mt-6 bg-black/60 px-6 py-2 rounded-xl backdrop-blur-md shadow-lg border border-white/10";
+  const handleSafetyAccept = () => {
+    setShowSafetyModal(false);
+    // startCamera will trigger via useEffect
+  };
+
+  // --- 4. Navigation Simulation (Demo Logic) ---
+  useEffect(() => {
+    if (!isNavigating || !cameraReady) return;
     
-    switch (currentDirection) {
-      case 'left':
-        return (
-          <div className="nav-arrow flex flex-col items-center animate-bounce">
-            <svg width="120" height="120" viewBox="0 0 80 80" className={`text-white fill-none stroke-current ${arrowStyle}`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M50 15L20 40L50 65" />
-              <path d="M20 40H65" />
-            </svg>
-            <span className={labelStyle}>Turn Left</span>
+    const interval = setInterval(() => {
+      setDistanceToNext(prev => {
+        if (prev <= 0) {
+          setCurrentDirection('arrived');
+          return 0;
+        }
+        return Math.max(0, prev - 2); // Decrease distance
+      });
+    }, 2000); // Slower update for demo
+
+    return () => clearInterval(interval);
+  }, [isNavigating, cameraReady]);
+
+
+  // --- 5. Render Helpers ---
+  const getDirectionArrow = () => {
+    // Styling ensuring high visibility
+    const containerClass = "flex flex-col items-center animate-pulse drop-shadow-2xl";
+    const textClass = "text-white font-bold text-2xl mt-4 bg-black/60 px-6 py-2 rounded-xl backdrop-blur-md border border-white/20";
+    const arrowColor = "text-white fill-white filter drop-shadow-lg";
+
+    if (currentDirection === 'arrived') {
+      return (
+        <div className="flex flex-col items-center animate-bounce">
+          <div className="w-24 h-24 rounded-full bg-green-500 flex items-center justify-center shadow-lg border-4 border-white">
+            <MapPin className="w-12 h-12 text-white" />
           </div>
-        );
-      case 'right':
-        return (
-          <div className="nav-arrow flex flex-col items-center animate-bounce">
-            <svg width="120" height="120" viewBox="0 0 80 80" className={`text-white fill-none stroke-current ${arrowStyle}`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M30 15L60 40L30 65" />
-              <path d="M60 40H15" />
-            </svg>
-            <span className={labelStyle}>Turn Right</span>
-          </div>
-        );
-      case 'arrived':
-        return (
-          <div className="destination-marker flex flex-col items-center animate-bounce">
-            <div className="w-24 h-24 rounded-full bg-green-500 flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.6)] border-4 border-white">
-              <MapPin className="w-12 h-12 text-white" />
-            </div>
-            <span className="text-white font-bold text-2xl mt-6 bg-green-600 px-8 py-3 rounded-xl shadow-lg border border-green-400">You've Arrived!</span>
-          </div>
-        );
-      default:
-        return (
-          <div className="nav-arrow flex flex-col items-center animate-pulse">
-            <svg width="120" height="120" viewBox="0 0 80 80" className={`text-white fill-none stroke-current ${arrowStyle}`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M40 65V15" />
-              <path d="M20 35L40 15L60 35" />
-            </svg>
-            <span className={labelStyle}>Go Straight</span>
-          </div>
-        );
+          <span className="text-white font-bold text-2xl mt-4 bg-green-600 px-6 py-2 rounded-xl">
+            You've Arrived!
+          </span>
+        </div>
+      );
     }
+
+    return (
+      <div className={containerClass}>
+        <svg width="100" height="100" viewBox="0 0 24 24" className={arrowColor}>
+          <path d="M12 2L12 19M12 2L5 9M12 2L19 9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        <span className={textClass}>Go Straight</span>
+      </div>
+    );
   };
 
   return (
-    <div className="fixed inset-0 bg-black mobile-container">
-      {/* Safety Warning Modal - Rendered Conditionally */}
+    <div className="fixed inset-0 bg-black z-50">
+      
+      {/* 1. Safety Modal */}
       {showSafetyModal && (
         <ARSafetyModal onAccept={handleSafetyAccept} onCancel={() => navigate('/home')} />
       )}
 
-      {/* Main View Area */}
-      <div className="relative w-full h-full">
-        {/* Close Button */}
-        {!showSafetyModal && (
-          <button
-            onClick={handleCloseCamera}
-            className="absolute top-14 right-6 z-50 w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/60 transition-all active:scale-95 shadow-lg"
-          >
-            <X className="w-6 h-6 text-white" />
-          </button>
-        )}
-
-        {/* Camera Error UI */}
-        {cameraError ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background px-8 text-center z-40">
-            <div className="w-24 h-24 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
-              <Navigation className="w-12 h-12 text-destructive" />
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-3">Camera Unavailable</h2>
-            <p className="text-muted-foreground mb-8 text-lg">{cameraError}</p>
-            <Button onClick={startARSession} size="lg" className="w-full h-14 text-lg rounded-xl">
-              <RotateCcw className="w-5 h-5 mr-2" />
-              Retry Camera
-            </Button>
-            <Button variant="ghost" onClick={() => navigate('/home')} className="mt-4 h-14 text-lg">
-              Return Home
-            </Button>
-          </div>
-        ) : (
-          /* Live Camera Feed */
+      {/* 2. Main Camera Layer */}
+      <div className="relative w-full h-full overflow-hidden">
+        
+        {/* Camera Feed */}
+        {!cameraError && (
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className={`w-full h-full object-cover transition-opacity duration-500 ${cameraReady ? 'opacity-100' : 'opacity-0'}`}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${cameraReady ? 'opacity-100' : 'opacity-0'}`}
           />
         )}
 
-        {/* Loading Spinner - Only show if modal is gone and camera not ready */}
+        {/* Loading State */}
         {!cameraReady && !cameraError && !showSafetyModal && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-background/10 backdrop-blur-sm">
-            <div className="w-16 h-16 border-4 border-white/30 border-t-primary rounded-full animate-spin mb-4 shadow-xl" />
-            <p className="text-white font-medium text-lg drop-shadow-md">Initializing AR...</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 z-10">
+            <div className="w-12 h-12 border-4 border-white/20 border-t-primary rounded-full animate-spin mb-4" />
+            <p className="text-white font-medium">Starting Camera...</p>
           </div>
         )}
 
-        {/* AR Overlay */}
+        {/* Error State */}
+        {cameraError && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 px-6 text-center z-50">
+            <Navigation className="w-16 h-16 text-destructive mb-4" />
+            <h2 className="text-xl font-bold text-white mb-2">Camera Error</h2>
+            <p className="text-zinc-400 mb-6">{cameraError}</p>
+            <div className="flex gap-3">
+              <Button onClick={startCamera} variant="default">Retry</Button>
+              <Button onClick={() => navigate('/home')} variant="secondary">Cancel</Button>
+            </div>
+          </div>
+        )}
+
+        {/* 3. AR Overlay UI (Only visible when camera is ready) */}
         {cameraReady && isNavigating && (
-          <div className="absolute inset-0 z-20 pointer-events-none">
-            {/* Top Info Bar */}
-            <div className="absolute top-0 left-0 right-0 p-6 pt-14 bg-gradient-to-b from-black/80 to-transparent">
-              <div className="flex items-center gap-4">
-                <div className="flex-1 bg-black/50 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-inner">
-                      <Navigation className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="overflow-hidden">
-                      <p className="text-xs text-white/80 font-semibold uppercase tracking-wider mb-0.5">Navigating To</p>
-                      <p className="text-white font-bold text-lg truncate">
-                        {destination?.name || 'Destination'}
-                      </p>
-                    </div>
-                  </div>
+          <div className="absolute inset-0 z-20 flex flex-col justify-between pointer-events-none">
+            
+            {/* Top Bar */}
+            <div className="p-4 pt-12 flex items-center gap-3 bg-gradient-to-b from-black/60 to-transparent">
+              {/* Close Button */}
+              <button 
+                onClick={handleCloseCamera}
+                className="w-10 h-10 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center pointer-events-auto active:scale-95 transition-all"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+
+              {/* Destination Pill */}
+              <div className="flex-1 bg-black/40 backdrop-blur rounded-full h-12 px-4 flex items-center gap-3 border border-white/10">
+                <Navigation className="w-5 h-5 text-primary fill-primary" />
+                <div className="flex-1 overflow-hidden">
+                  <p className="text-white font-semibold truncate text-sm">
+                    {destination?.name || 'Destination'}
+                  </p>
                 </div>
-                
-                <button
-                  onClick={() => setAudioEnabled(!audioEnabled)}
-                  className="w-14 h-14 rounded-2xl bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto active:scale-95 transition-transform"
-                >
-                  {audioEnabled ? (
-                    <Volume2 className="w-6 h-6 text-white" />
-                  ) : (
-                    <VolumeX className="w-6 h-6 text-white/50" />
-                  )}
-                </button>
               </div>
+
+              {/* Audio Toggle */}
+              <button 
+                onClick={() => setAudioEnabled(!audioEnabled)}
+                className="w-10 h-10 rounded-full bg-black/40 backdrop-blur border border-white/10 flex items-center justify-center pointer-events-auto"
+              >
+                {audioEnabled ? <Volume2 className="w-5 h-5 text-white" /> : <VolumeX className="w-5 h-5 text-white/50" />}
+              </button>
             </div>
 
-            {/* Center Direction Indicator */}
-            <div className="absolute inset-0 flex items-center justify-center pb-20">
+            {/* Center Arrow */}
+            <div className="flex-1 flex items-center justify-center pb-20">
               {getDirectionArrow()}
             </div>
 
-            {/* Bottom Distance Card */}
-            <div className="absolute bottom-28 left-6 right-6">
-              <div className="bg-white/95 backdrop-blur-xl rounded-[1.5rem] p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-500 text-slate-900">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-4">
-                    <div className="bg-blue-100 p-3 rounded-full">
-                      <MapPin className="w-6 h-6 text-blue-600" />
+            {/* Bottom Info Card */}
+            <div className="p-6 pb-8">
+              <div className="bg-white rounded-3xl p-5 shadow-2xl animate-in slide-in-from-bottom duration-500">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <MapPin className="w-5 h-5 text-blue-600" />
                     </div>
                     <div>
-                      <span className="block text-3xl font-bold tabular-nums">
-                        {distanceToNext}<span className="text-lg font-medium text-slate-500 ml-1">m</span>
-                      </span>
-                      <span className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Distance to turn</span>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-2xl font-bold text-slate-900">{distanceToNext}</span>
+                        <span className="text-sm font-medium text-slate-500">m</span>
+                      </div>
+                      <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Distance</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="block text-2xl font-bold">{estimatedTime}</span>
-                    <span className="text-sm font-semibold text-slate-400 uppercase tracking-wide">ETA</span>
+                    <p className="text-xl font-bold text-slate-900">{estimatedTime}</p>
+                    <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">ETA</p>
                   </div>
                 </div>
                 
-                <div className="h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
+                {/* Progress Bar */}
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-blue-600 rounded-full transition-all duration-700 ease-out relative"
-                    style={{ width: `${100 - (distanceToNext / 25 * 100)}%` }}
+                    className="h-full bg-blue-600 rounded-full transition-all duration-1000 ease-linear"
+                    style={{ width: `${Math.min(100, Math.max(0, 100 - (distanceToNext / 50 * 100)))}%` }}
                   />
                 </div>
               </div>
             </div>
+
           </div>
         )}
       </div>
 
-      {!showSafetyModal && <BottomNavigation />}
+      {/* Bottom Nav (Only if not in modal) */}
+      {!showSafetyModal && <BottomNavigation className="bg-black/90 border-t-white/10 text-white" />}
     </div>
   );
 };
