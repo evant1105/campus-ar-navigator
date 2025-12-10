@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AlertTriangle, AlertCircle } from 'lucide-react'; // Changed icons to match style
+import { AlertTriangle, AlertCircle } from 'lucide-react'; 
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -30,7 +30,7 @@ const ARSafetyModal: React.FC<ARSafetyModalProps> = ({ onAccept, onCancel }) => 
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] flex items-center justify-center p-6">
       <div className="bg-card rounded-[2rem] w-full max-w-sm p-8 animate-fade-in-up shadow-2xl">
         
-        {/* Main Warning Icon - Matches Screenshot */}
+        {/* Main Warning Icon - Matches Screenshot Style */}
         <div className="flex justify-center mb-8">
           <div className="w-28 h-28 rounded-full bg-[#FAFFC7] flex items-center justify-center border-4 border-[#F5FDB0]">
             <AlertTriangle className="w-14 h-14 text-foreground stroke-[1.5]" />
@@ -41,7 +41,7 @@ const ARSafetyModal: React.FC<ARSafetyModalProps> = ({ onAccept, onCancel }) => 
         <div className="space-y-5 mb-8">
           {safetyTips.map((text, index) => (
             <div key={index} className="flex items-start gap-4">
-              {/* Small Yellow Warning Icon for bullets */}
+              {/* Yellow Warning Icon for bullets */}
               <div className="flex-shrink-0 mt-0.5">
                 <AlertCircle className="w-6 h-6 text-[#FFC107] fill-[#FFF9C4]" />
               </div>
@@ -68,12 +68,12 @@ const ARSafetyModal: React.FC<ARSafetyModalProps> = ({ onAccept, onCancel }) => 
           </label>
         </div>
 
-        {/* Stacked Buttons */}
+        {/* Buttons */}
         <div className="space-y-3">
           <Button
             onClick={handleAccept}
             className="w-full h-14 text-base rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
-            variant="default" // Using primary color (Purple/Blue based on your theme)
+            variant="default"
           >
             I Understand, Start AR
           </Button>

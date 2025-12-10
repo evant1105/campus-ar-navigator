@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Navigation, Map, Clock, Building, ChevronRight } from 'lucide-react';
+import { Search, Navigation, Map, Building, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
@@ -49,7 +49,7 @@ const Home: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content Layered Over Header */}
+      {/* Main Content */}
       <div className="px-6 -mt-6 relative z-20 space-y-8">
         
         {/* Search & Actions Card */}
@@ -68,7 +68,7 @@ const Home: React.FC = () => {
               <Button
                 onClick={() => navigate('/ar')}
                 className="w-full justify-center gap-2 h-14 rounded-2xl font-semibold shadow-md active:scale-95 transition-all"
-                variant="default" // Using primary color
+                variant="default"
               >
                 <Navigation className="w-5 h-5 fill-current" />
                 AR Nav
@@ -86,7 +86,7 @@ const Home: React.FC = () => {
           </div>
         </div>
 
-        {/* Next Class - Enhanced visual hierarchy */}
+        {/* Next Class */}
         <div className="space-y-4">
           <div className="flex items-center justify-between px-1">
             <h2 className="font-bold text-lg text-foreground">Up Next</h2>
@@ -119,7 +119,7 @@ const Home: React.FC = () => {
           </div>
         </div>
 
-        {/* Recent Places - Improved List */}
+        {/* Recent Places */}
         <div className="space-y-2">
           <h2 className="font-bold text-lg text-foreground px-1">Recent</h2>
           <div className="space-y-3">
@@ -127,7 +127,7 @@ const Home: React.FC = () => {
               <LocationCard
                 key={place.id}
                 location={place}
-                variant="default" // Using default large card for better touch targets
+                variant="default"
                 onClick={() => handleNavigateTo(place)}
               />
             ))}

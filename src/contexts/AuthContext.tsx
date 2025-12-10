@@ -45,6 +45,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
+    // Reset the AR safety warning preference so it shows again on next login
+    localStorage.removeItem('arSafetyAccepted');
     setUser(null);
   };
 

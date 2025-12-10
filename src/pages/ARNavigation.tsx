@@ -22,23 +22,21 @@ const ARNavigation: React.FC = () => {
   const [distanceToNext, setDistanceToNext] = useState(25);
   const [estimatedTime, setEstimatedTime] = useState('3 min');
 
-  // 1. Initial Setup & Safety Check
+  // Initial Safety Check & State Setup
   useEffect(() => {
     const safetyAccepted = localStorage.getItem('arSafetyAccepted');
     
     if (!safetyAccepted) {
-      // First time: Show modal
       setShowSafetyModal(true);
     } else {
-      // Second time onwards: Start immediately AND set navigating state
+      // If warning already accepted, start everything immediately
       startCamera();
-      setIsNavigating(true); // <--- FIXED: This was missing before
+      setIsNavigating(true); // IMPORTANT: Ensure navigation UI is active
     }
-  }, []); // Run once on mount
+  }, []);
 
-  // 2. Navigation Simulation Logic
+  // Navigation Logic (Simulated)
   useEffect(() => {
-    // Only run if we are actively navigating and camera is ready
     if (!isNavigating || !cameraReady) return;
     
     const directions = ['straight', 'left', 'right', 'arrived'];
@@ -66,7 +64,6 @@ const ARNavigation: React.FC = () => {
 
   const startCamera = useCallback(async () => {
     try {
-      // Mobile-optimized camera constraints
       const constraints = {
         video: { 
           facingMode: { ideal: 'environment' }, 
@@ -90,7 +87,7 @@ const ARNavigation: React.FC = () => {
       console.error('Camera error:', error);
       setCameraError('Please allow camera access to use AR features.');
       toast({
-        title: "Camera Access Required",
+        title: "Camera Error",
         description: "We couldn't access your camera. Please check your settings.",
         variant: "destructive",
       });
@@ -105,7 +102,6 @@ const ARNavigation: React.FC = () => {
     setCameraReady(false);
   }, [stream]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => stopCamera();
   }, [stopCamera]);
@@ -122,16 +118,15 @@ const ARNavigation: React.FC = () => {
     navigate('/home');
   }, [stopCamera, setIsNavigating, navigate]);
 
-  // Direction Arrows with Bootstrap-style spacing/sizing
   const getDirectionArrow = () => {
-    const arrowStyle = "drop-shadow-lg transition-all duration-500 filter";
-    const labelStyle = "text-white font-bold text-2xl mt-4 bg-black/60 px-6 py-3 rounded-xl backdrop-blur-md shadow-lg";
+    const arrowStyle = "drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]";
+    const labelStyle = "text-white font-bold text-2xl mt-6 bg-black/60 px-6 py-2 rounded-xl backdrop-blur-md shadow-lg border border-white/10";
     
     switch (currentDirection) {
       case 'left':
         return (
           <div className="nav-arrow flex flex-col items-center animate-bounce">
-            <svg width="100" height="100" viewBox="0 0 80 80" className={`text-white fill-none stroke-current ${arrowStyle}`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="120" height="120" viewBox="0 0 80 80" className={`text-white fill-none stroke-current ${arrowStyle}`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M50 15L20 40L50 65" />
               <path d="M20 40H65" />
             </svg>
@@ -141,7 +136,7 @@ const ARNavigation: React.FC = () => {
       case 'right':
         return (
           <div className="nav-arrow flex flex-col items-center animate-bounce">
-            <svg width="100" height="100" viewBox="0 0 80 80" className={`text-white fill-none stroke-current ${arrowStyle}`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="120" height="120" viewBox="0 0 80 80" className={`text-white fill-none stroke-current ${arrowStyle}`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M30 15L60 40L30 65" />
               <path d="M60 40H15" />
             </svg>
@@ -151,16 +146,16 @@ const ARNavigation: React.FC = () => {
       case 'arrived':
         return (
           <div className="destination-marker flex flex-col items-center animate-bounce">
-            <div className="w-24 h-24 rounded-full bg-green-500 flex items-center justify-center shadow-lg border-4 border-white">
+            <div className="w-24 h-24 rounded-full bg-green-500 flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.6)] border-4 border-white">
               <MapPin className="w-12 h-12 text-white" />
             </div>
-            <span className="text-white font-bold text-2xl mt-4 bg-green-600 px-8 py-3 rounded-xl shadow-lg">You've Arrived!</span>
+            <span className="text-white font-bold text-2xl mt-6 bg-green-600 px-8 py-3 rounded-xl shadow-lg border border-green-400">You've Arrived!</span>
           </div>
         );
       default: // Straight
         return (
           <div className="nav-arrow flex flex-col items-center animate-pulse">
-            <svg width="100" height="100" viewBox="0 0 80 80" className={`text-white fill-none stroke-current ${arrowStyle}`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="120" height="120" viewBox="0 0 80 80" className={`text-white fill-none stroke-current ${arrowStyle}`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
               <path d="M40 65V15" />
               <path d="M20 35L40 15L60 35" />
             </svg>
@@ -179,12 +174,11 @@ const ARNavigation: React.FC = () => {
 
       {/* Main View Area */}
       <div className="relative w-full h-full">
-        
         {/* Close Button - Always visible for safety */}
         {!showSafetyModal && (
           <button
             onClick={handleCloseCamera}
-            className="absolute top-12 right-6 z-50 w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/60 transition-all active:scale-95 shadow-lg"
+            className="absolute top-14 right-6 z-50 w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/60 transition-all active:scale-95 shadow-lg"
           >
             <X className="w-6 h-6 text-white" />
           </button>
@@ -225,12 +219,11 @@ const ARNavigation: React.FC = () => {
           </div>
         )}
 
-        {/* AR Overlay - Only shows when navigating AND camera is ready */}
+        {/* AR Overlay */}
         {cameraReady && isNavigating && (
           <div className="absolute inset-0 z-20 pointer-events-none">
-            
             {/* Top Info Bar */}
-            <div className="absolute top-0 left-0 right-0 p-6 pt-14 bg-gradient-to-b from-black/70 to-transparent">
+            <div className="absolute top-0 left-0 right-0 p-6 pt-14 bg-gradient-to-b from-black/80 to-transparent">
               <div className="flex items-center gap-4">
                 <div className="flex-1 bg-black/50 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-lg">
                   <div className="flex items-center gap-4">
@@ -261,32 +254,31 @@ const ARNavigation: React.FC = () => {
             </div>
 
             {/* Center Direction Indicator */}
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex items-center justify-center pb-20">
               {getDirectionArrow()}
             </div>
 
             {/* Bottom Distance Card */}
             <div className="absolute bottom-28 left-6 right-6">
-              <div className="bg-white/95 backdrop-blur-xl rounded-[1.5rem] p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-500">
+              <div className="bg-white/95 backdrop-blur-xl rounded-[1.5rem] p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-500 text-slate-900">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4">
                     <div className="bg-blue-100 p-3 rounded-full">
                       <MapPin className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
-                      <span className="block text-3xl font-bold tabular-nums text-slate-900">
-                        {distanceToNext}<span className="text-lg font-medium text-slate-500 ml-1">meters</span>
+                      <span className="block text-3xl font-bold tabular-nums">
+                        {distanceToNext}<span className="text-lg font-medium text-slate-500 ml-1">m</span>
                       </span>
                       <span className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Distance to turn</span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="block text-2xl font-bold text-slate-900">{estimatedTime}</span>
+                    <span className="block text-2xl font-bold">{estimatedTime}</span>
                     <span className="text-sm font-semibold text-slate-400 uppercase tracking-wide">ETA</span>
                   </div>
                 </div>
                 
-                {/* Visual Progress Bar */}
                 <div className="h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                   <div 
                     className="h-full bg-blue-600 rounded-full transition-all duration-700 ease-out relative"
