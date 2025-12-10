@@ -22,18 +22,23 @@ const ARNavigation: React.FC = () => {
   const [distanceToNext, setDistanceToNext] = useState(25);
   const [estimatedTime, setEstimatedTime] = useState('3 min');
 
-  // Initial Safety Check
+  // 1. Initial Setup & Safety Check
   useEffect(() => {
     const safetyAccepted = localStorage.getItem('arSafetyAccepted');
+    
     if (!safetyAccepted) {
+      // First time: Show modal
       setShowSafetyModal(true);
     } else {
+      // Second time onwards: Start immediately AND set navigating state
       startCamera();
+      setIsNavigating(true); // <--- FIXED: This was missing before
     }
-  }, []);
+  }, []); // Run once on mount
 
-  // Navigation Logic (Simulated for Demo)
+  // 2. Navigation Simulation Logic
   useEffect(() => {
+    // Only run if we are actively navigating and camera is ready
     if (!isNavigating || !cameraReady) return;
     
     const directions = ['straight', 'left', 'right', 'arrived'];
@@ -49,7 +54,7 @@ const ARNavigation: React.FC = () => {
           toast({
             title: "You've arrived!",
             description: destination?.name || "Your destination",
-            className: "bg-success text-success-foreground",
+            className: "bg-green-600 text-white border-none",
           });
           setIsNavigating(false);
         }
@@ -61,10 +66,10 @@ const ARNavigation: React.FC = () => {
 
   const startCamera = useCallback(async () => {
     try {
-      // Constraints for mobile rear camera
+      // Mobile-optimized camera constraints
       const constraints = {
         video: { 
-          facingMode: { ideal: 'environment' }, // Prefer rear camera
+          facingMode: { ideal: 'environment' }, 
           width: { ideal: 1280 },
           height: { ideal: 720 }
         },
@@ -76,7 +81,6 @@ const ARNavigation: React.FC = () => {
       
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
-        // Wait for data to load to prevent black screen flashes
         videoRef.current.onloadeddata = () => {
           setCameraReady(true);
           setCameraError(null);
@@ -101,6 +105,7 @@ const ARNavigation: React.FC = () => {
     setCameraReady(false);
   }, [stream]);
 
+  // Cleanup on unmount
   useEffect(() => {
     return () => stopCamera();
   }, [stopCamera]);
@@ -117,48 +122,49 @@ const ARNavigation: React.FC = () => {
     navigate('/home');
   }, [stopCamera, setIsNavigating, navigate]);
 
-  // Enhanced visual arrows
+  // Direction Arrows with Bootstrap-style spacing/sizing
   const getDirectionArrow = () => {
-    const arrowClass = "drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)] transition-all duration-500";
+    const arrowStyle = "drop-shadow-lg transition-all duration-500 filter";
+    const labelStyle = "text-white font-bold text-2xl mt-4 bg-black/60 px-6 py-3 rounded-xl backdrop-blur-md shadow-lg";
     
     switch (currentDirection) {
       case 'left':
         return (
           <div className="nav-arrow flex flex-col items-center animate-bounce">
-            <svg width="120" height="120" viewBox="0 0 80 80" className="text-white fill-current">
-              <path d="M50 15L20 40L50 65" stroke="currentColor" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              <path d="M20 40H65" stroke="currentColor" strokeWidth="8" strokeLinecap="round"/>
+            <svg width="100" height="100" viewBox="0 0 80 80" className={`text-white fill-none stroke-current ${arrowStyle}`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M50 15L20 40L50 65" />
+              <path d="M20 40H65" />
             </svg>
-            <span className={`text-white font-bold text-2xl mt-4 bg-black/50 px-4 py-2 rounded-lg backdrop-blur-md ${arrowClass}`}>Turn Left</span>
+            <span className={labelStyle}>Turn Left</span>
           </div>
         );
       case 'right':
         return (
           <div className="nav-arrow flex flex-col items-center animate-bounce">
-            <svg width="120" height="120" viewBox="0 0 80 80" className="text-white fill-current">
-              <path d="M30 15L60 40L30 65" stroke="currentColor" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
-              <path d="M60 40H15" stroke="currentColor" strokeWidth="8" strokeLinecap="round"/>
+            <svg width="100" height="100" viewBox="0 0 80 80" className={`text-white fill-none stroke-current ${arrowStyle}`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M30 15L60 40L30 65" />
+              <path d="M60 40H15" />
             </svg>
-            <span className={`text-white font-bold text-2xl mt-4 bg-black/50 px-4 py-2 rounded-lg backdrop-blur-md ${arrowClass}`}>Turn Right</span>
+            <span className={labelStyle}>Turn Right</span>
           </div>
         );
       case 'arrived':
         return (
           <div className="destination-marker flex flex-col items-center animate-bounce">
-            <div className="w-24 h-24 rounded-full bg-success flex items-center justify-center shadow-[0_0_30px_rgba(34,197,94,0.6)]">
+            <div className="w-24 h-24 rounded-full bg-green-500 flex items-center justify-center shadow-lg border-4 border-white">
               <MapPin className="w-12 h-12 text-white" />
             </div>
-            <span className={`text-white font-bold text-2xl mt-4 bg-success/80 px-6 py-2 rounded-xl backdrop-blur-md ${arrowClass}`}>You've Arrived!</span>
+            <span className="text-white font-bold text-2xl mt-4 bg-green-600 px-8 py-3 rounded-xl shadow-lg">You've Arrived!</span>
           </div>
         );
       default: // Straight
         return (
           <div className="nav-arrow flex flex-col items-center animate-pulse">
-            <svg width="120" height="120" viewBox="0 0 80 80" className="text-white fill-current">
-              <path d="M40 65V15" stroke="currentColor" strokeWidth="8" strokeLinecap="round"/>
-              <path d="M20 35L40 15L60 35" stroke="currentColor" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round" fill="none"/>
+            <svg width="100" height="100" viewBox="0 0 80 80" className={`text-white fill-none stroke-current ${arrowStyle}`} strokeWidth="8" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M40 65V15" />
+              <path d="M20 35L40 15L60 35" />
             </svg>
-            <span className={`text-white font-bold text-2xl mt-4 bg-black/50 px-4 py-2 rounded-lg backdrop-blur-md ${arrowClass}`}>Go Straight</span>
+            <span className={labelStyle}>Go Straight</span>
           </div>
         );
     }
@@ -166,41 +172,42 @@ const ARNavigation: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-black mobile-container">
-      {/* Warning Modal */}
+      {/* Safety Warning Modal */}
       {showSafetyModal && (
         <ARSafetyModal onAccept={handleSafetyAccept} onCancel={() => navigate('/home')} />
       )}
 
-      {/* Main View */}
+      {/* Main View Area */}
       <div className="relative w-full h-full">
-        {/* Close Button - Always accessible */}
+        
+        {/* Close Button - Always visible for safety */}
         {!showSafetyModal && (
           <button
             onClick={handleCloseCamera}
-            className="absolute top-12 right-6 z-50 w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/60 transition-all active:scale-95"
+            className="absolute top-12 right-6 z-50 w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center hover:bg-black/60 transition-all active:scale-95 shadow-lg"
           >
             <X className="w-6 h-6 text-white" />
           </button>
         )}
 
-        {/* Camera Error State */}
+        {/* Camera Error UI */}
         {cameraError ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background px-6 text-center z-40">
-            <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
-              <Navigation className="w-10 h-10 text-destructive" />
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-background px-8 text-center z-40">
+            <div className="w-24 h-24 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
+              <Navigation className="w-12 h-12 text-destructive" />
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-3">Camera Unavailable</h2>
-            <p className="text-muted-foreground mb-8">{cameraError}</p>
-            <Button onClick={startCamera} size="lg" className="w-full max-w-xs">
-              <RotateCcw className="w-4 h-4 mr-2" />
+            <p className="text-muted-foreground mb-8 text-lg">{cameraError}</p>
+            <Button onClick={startCamera} size="lg" className="w-full h-14 text-lg rounded-xl">
+              <RotateCcw className="w-5 h-5 mr-2" />
               Retry Camera
             </Button>
-            <Button variant="ghost" onClick={() => navigate('/home')} className="mt-4">
+            <Button variant="ghost" onClick={() => navigate('/home')} className="mt-4 h-14 text-lg">
               Return Home
             </Button>
           </div>
         ) : (
-          /* Video Feed */
+          /* Live Camera Feed */
           <video
             ref={videoRef}
             autoPlay
@@ -212,41 +219,42 @@ const ARNavigation: React.FC = () => {
 
         {/* Loading Spinner */}
         {!cameraReady && !cameraError && !showSafetyModal && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center z-30">
-            <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-            <p className="text-white font-medium drop-shadow-md">Initializing AR...</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-background/10 backdrop-blur-sm">
+            <div className="w-16 h-16 border-4 border-white/30 border-t-primary rounded-full animate-spin mb-4 shadow-xl" />
+            <p className="text-white font-medium text-lg drop-shadow-md">Initializing AR...</p>
           </div>
         )}
 
-        {/* AR Overlay UI */}
+        {/* AR Overlay - Only shows when navigating AND camera is ready */}
         {cameraReady && isNavigating && (
           <div className="absolute inset-0 z-20 pointer-events-none">
-            {/* Top Navigation Bar */}
-            <div className="absolute top-0 left-0 right-0 p-6 pt-12 bg-gradient-to-b from-black/80 to-transparent">
+            
+            {/* Top Info Bar */}
+            <div className="absolute top-0 left-0 right-0 p-6 pt-14 bg-gradient-to-b from-black/70 to-transparent">
               <div className="flex items-center gap-4">
-                <div className="flex-1 bg-black/40 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                      <Navigation className="w-5 h-5 text-white" />
+                <div className="flex-1 bg-black/50 backdrop-blur-md rounded-2xl p-4 border border-white/10 shadow-lg">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-inner">
+                      <Navigation className="w-6 h-6 text-white" />
                     </div>
-                    <div>
-                      <p className="text-xs text-white/70 font-medium uppercase tracking-wider">Destination</p>
-                      <p className="text-white font-bold truncate">
-                        {destination?.name || 'Select a destination'}
+                    <div className="overflow-hidden">
+                      <p className="text-xs text-white/80 font-semibold uppercase tracking-wider mb-0.5">Navigating To</p>
+                      <p className="text-white font-bold text-lg truncate">
+                        {destination?.name || 'Destination'}
                       </p>
                     </div>
                   </div>
                 </div>
                 
-                {/* Audio Toggle */}
+                {/* Audio Button */}
                 <button
                   onClick={() => setAudioEnabled(!audioEnabled)}
-                  className="w-12 h-12 rounded-full bg-black/40 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto active:scale-95 transition-transform"
+                  className="w-14 h-14 rounded-2xl bg-black/50 backdrop-blur-md border border-white/20 flex items-center justify-center pointer-events-auto active:scale-95 transition-transform"
                 >
                   {audioEnabled ? (
-                    <Volume2 className="w-5 h-5 text-white" />
+                    <Volume2 className="w-6 h-6 text-white" />
                   ) : (
-                    <VolumeX className="w-5 h-5 text-white/50" />
+                    <VolumeX className="w-6 h-6 text-white/50" />
                   )}
                 </button>
               </div>
@@ -257,35 +265,33 @@ const ARNavigation: React.FC = () => {
               {getDirectionArrow()}
             </div>
 
-            {/* Bottom Info Card */}
-            <div className="absolute bottom-24 left-6 right-6">
-              <div className="bg-card/95 backdrop-blur-xl rounded-[1.5rem] p-5 shadow-2xl border border-white/10 text-card-foreground animate-in slide-in-from-bottom-10 duration-500">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-primary/10 p-2 rounded-full">
-                      <MapPin className="w-6 h-6 text-primary" />
+            {/* Bottom Distance Card */}
+            <div className="absolute bottom-28 left-6 right-6">
+              <div className="bg-white/95 backdrop-blur-xl rounded-[1.5rem] p-6 shadow-2xl animate-in slide-in-from-bottom-10 duration-500">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-blue-100 p-3 rounded-full">
+                      <MapPin className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
-                      <span className="block text-2xl font-bold tabular-nums leading-none">
-                        {distanceToNext}<span className="text-sm font-normal text-muted-foreground ml-1">m</span>
+                      <span className="block text-3xl font-bold tabular-nums text-slate-900">
+                        {distanceToNext}<span className="text-lg font-medium text-slate-500 ml-1">meters</span>
                       </span>
-                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Distance</span>
+                      <span className="text-sm font-semibold text-slate-400 uppercase tracking-wide">Distance to turn</span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="block text-xl font-bold">{estimatedTime}</span>
-                    <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">ETA</span>
+                    <span className="block text-2xl font-bold text-slate-900">{estimatedTime}</span>
+                    <span className="text-sm font-semibold text-slate-400 uppercase tracking-wide">ETA</span>
                   </div>
                 </div>
                 
-                {/* Progress Bar */}
-                <div className="h-3 bg-secondary rounded-full overflow-hidden">
+                {/* Visual Progress Bar */}
+                <div className="h-4 bg-slate-100 rounded-full overflow-hidden border border-slate-200">
                   <div 
-                    className="h-full bg-primary rounded-full transition-all duration-700 ease-out relative overflow-hidden"
+                    className="h-full bg-blue-600 rounded-full transition-all duration-700 ease-out relative"
                     style={{ width: `${100 - (distanceToNext / 25 * 100)}%` }}
-                  >
-                    <div className="absolute inset-0 bg-white/20 w-full h-full animate-[shimmer_2s_infinite]" />
-                  </div>
+                  />
                 </div>
               </div>
             </div>
