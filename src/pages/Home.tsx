@@ -31,9 +31,9 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-24 mobile-container">
       {/* Header */}
-      <div className="bg-primary px-4 pt-12 pb-8 rounded-b-3xl">
+      <div className="bg-primary px-5 pt-14 pb-10 rounded-b-3xl">
         <h1 className="text-lg font-bold text-primary-foreground">
           MyCampus AR Wayfinder
         </h1>
@@ -43,7 +43,7 @@ const Home: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="px-4 -mt-4 space-y-4">
+      <div className="px-5 -mt-4 space-y-5">
         {/* Quick Actions */}
         <div className="space-y-3">
           <Button
