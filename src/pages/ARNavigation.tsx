@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Navigation, MapPin, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Navigation, MapPin, RotateCcw, Volume2, VolumeX, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigation } from '@/contexts/NavigationContext';
 import ARSafetyModal from '@/components/ARSafetyModal';
@@ -158,16 +158,33 @@ const ARNavigation: React.FC = () => {
     }
   };
 
+  const handleCloseCamera = useCallback(() => {
+    stopCamera();
+    setIsNavigating(false);
+    navigate('/home');
+  }, [stopCamera, setIsNavigating, navigate]);
+
   return (
-    <div className="fixed inset-0 bg-foreground">
+    <div className="fixed inset-0 bg-foreground mobile-container">
       {showSafetyModal && (
         <ARSafetyModal onAccept={handleSafetyAccept} onCancel={handleSafetyCancel} />
+      )}
+
+      {/* Close Camera Button - Always visible when camera is active */}
+      {(cameraReady || cameraError) && !showSafetyModal && (
+        <button
+          onClick={handleCloseCamera}
+          className="absolute top-14 right-5 z-50 w-12 h-12 rounded-full bg-destructive/90 backdrop-blur flex items-center justify-center pointer-events-auto shadow-lg"
+          aria-label="Close camera"
+        >
+          <X className="w-6 h-6 text-destructive-foreground" />
+        </button>
       )}
 
       {/* Camera View */}
       <div className="relative w-full h-full">
         {cameraError ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted p-6 text-center">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-muted p-8 text-center">
             <Navigation className="w-16 h-16 text-muted-foreground mb-4" />
             <p className="text-foreground font-medium mb-2">Camera Access Required</p>
             <p className="text-muted-foreground text-sm mb-4">{cameraError}</p>
@@ -190,26 +207,22 @@ const ARNavigation: React.FC = () => {
         {cameraReady && isNavigating && (
           <div className="ar-overlay">
             {/* Top Bar */}
-            <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-foreground/60 to-transparent p-4 pt-12">
+            <div className="absolute top-0 left-0 right-0 bg-gradient-to-b from-foreground/60 to-transparent p-5 pt-14">
               <div className="flex items-center justify-between">
                 <button
-                  onClick={() => {
-                    stopCamera();
-                    setIsNavigating(false);
-                    navigate('/home');
-                  }}
-                  className="w-10 h-10 rounded-full bg-card/80 backdrop-blur flex items-center justify-center pointer-events-auto"
+                  onClick={handleCloseCamera}
+                  className="w-11 h-11 rounded-full bg-card/80 backdrop-blur flex items-center justify-center pointer-events-auto"
                 >
                   <ArrowLeft className="w-5 h-5 text-foreground" />
                 </button>
-                <div className="bg-card/80 backdrop-blur rounded-full px-4 py-2">
+                <div className="bg-card/80 backdrop-blur rounded-full px-5 py-2.5">
                   <p className="text-sm font-medium text-foreground">
                     {destination?.name || 'Library Level 2'}
                   </p>
                 </div>
                 <button
                   onClick={() => setAudioEnabled(!audioEnabled)}
-                  className="w-10 h-10 rounded-full bg-card/80 backdrop-blur flex items-center justify-center pointer-events-auto"
+                  className="w-11 h-11 rounded-full bg-card/80 backdrop-blur flex items-center justify-center pointer-events-auto"
                 >
                   {audioEnabled ? (
                     <Volume2 className="w-5 h-5 text-foreground" />
@@ -226,8 +239,8 @@ const ARNavigation: React.FC = () => {
             </div>
 
             {/* Bottom Info Panel */}
-            <div className="absolute bottom-20 left-0 right-0 p-4">
-              <div className="glass-card rounded-2xl p-4 mx-auto max-w-sm pointer-events-auto">
+            <div className="absolute bottom-24 left-0 right-0 p-5">
+              <div className="glass-card rounded-2xl p-5 mx-auto max-w-sm pointer-events-auto">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-primary" />

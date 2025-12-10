@@ -115,11 +115,20 @@
 
 @layer utilities {
   .safe-area-bottom {
-    padding-bottom: env(safe-area-inset-bottom, 1rem);
+    padding-bottom: env(safe-area-inset-bottom, 1.25rem);
   }
 
   .safe-area-top {
     padding-top: env(safe-area-inset-top, 0);
+  }
+
+  /* iPhone 17 Pro dimensions wrapper */
+  .mobile-container {
+    max-width: 393px;
+    margin-left: auto;
+    margin-right: auto;
+    min-height: 100vh;
+    position: relative;
   }
 }
 
