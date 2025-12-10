@@ -27,38 +27,40 @@ const ARSafetyModal: React.FC<ARSafetyModalProps> = ({ onAccept, onCancel }) => 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
-      <div className="bg-white rounded-[2rem] w-full max-w-sm p-8 animate-in zoom-in-95 duration-200 shadow-2xl">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-6">
+      <div className="bg-white rounded-[2rem] w-full max-w-sm p-8 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         
-        {/* Main Warning Icon Container */}
-        <div className="flex justify-center mb-8">
-          <div className="w-32 h-32 rounded-full bg-[#FAFFC7] flex items-center justify-center border-4 border-transparent shadow-sm">
+        {/* Main Warning Icon - Large Yellow Circle */}
+        <div className="flex justify-center mb-10">
+          <div className="w-32 h-32 rounded-full bg-[#FBFFC8] flex items-center justify-center border-4 border-transparent">
             <AlertTriangle className="w-16 h-16 text-slate-900 stroke-[1.5]" />
           </div>
         </div>
 
-        {/* Safety Tips List */}
-        <div className="space-y-5 mb-8">
-          {safetyTips.map((text, index) => (
-            <div key={index} className="flex items-start gap-4">
-              {/* Yellow Warning Bullet Icon */}
-              <div className="flex-shrink-0 mt-0.5">
-                <AlertCircle className="w-6 h-6 text-[#FFC107] fill-white" />
+        {/* Safety Tips Container */}
+        <div className="bg-white border border-gray-100 rounded-2xl p-2 mb-8 shadow-[0_2px_15px_rgba(0,0,0,0.04)]">
+          <div className="space-y-5 p-4">
+            {safetyTips.map((text, index) => (
+              <div key={index} className="flex items-start gap-4">
+                {/* Yellow Warning Bullet */}
+                <div className="flex-shrink-0 mt-0.5">
+                  <AlertCircle className="w-6 h-6 text-[#FFD600] fill-white" />
+                </div>
+                <p className="text-[15px] font-medium text-slate-800 leading-snug">
+                  {text}
+                </p>
               </div>
-              <p className="text-[15px] font-medium text-slate-700 leading-snug">
-                {text}
-              </p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         {/* Checkbox Section */}
-        <div className="flex items-center gap-3 mb-8 pl-1">
+        <div className="flex items-center gap-3 mb-8 pl-2">
           <Checkbox
             id="dontShow"
             checked={dontShowAgain}
             onCheckedChange={(checked) => setDontShowAgain(checked as boolean)}
-            className="w-5 h-5 border-2 border-slate-400 data-[state=checked]:bg-slate-700 data-[state=checked]:border-slate-700"
+            className="w-5 h-5 border-2 border-slate-400 data-[state=checked]:bg-slate-700 data-[state=checked]:border-slate-700 rounded"
           />
           <label 
             htmlFor="dontShow" 
@@ -72,7 +74,7 @@ const ARSafetyModal: React.FC<ARSafetyModalProps> = ({ onAccept, onCancel }) => 
         <div className="space-y-3">
           <Button
             onClick={handleAccept}
-            className="w-full h-14 text-base rounded-xl font-semibold shadow-md bg-[#6366f1] hover:bg-[#5558e6] text-white"
+            className="w-full h-14 text-base rounded-xl font-semibold shadow-lg bg-[#5B5CEB] hover:bg-[#4D4ED8] text-white"
           >
             I Understand, Start AR
           </Button>

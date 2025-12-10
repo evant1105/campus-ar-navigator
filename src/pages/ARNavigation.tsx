@@ -15,10 +15,11 @@ const ARNavigation: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [stream, setStream] = useState<MediaStream | null>(null);
   
-  // FIX: Initialize state directly from localStorage to ensure modal appears immediately
+  // FIX: Initialize state directly from localStorage function
+  // This prevents the camera from starting for a split second if the value exists
   const [showSafetyModal, setShowSafetyModal] = useState(() => {
     const accepted = localStorage.getItem('arSafetyAccepted');
-    return !accepted; // If not accepted ('true'), show modal
+    return accepted !== 'true'; // Show modal if NOT 'true'
   });
 
   const [cameraReady, setCameraReady] = useState(false);
@@ -28,8 +29,11 @@ const ARNavigation: React.FC = () => {
   const [distanceToNext, setDistanceToNext] = useState(25);
   const [estimatedTime, setEstimatedTime] = useState('3 min');
 
-  // Camera & Navigation Start Logic
+  // Start Camera Logic
   const startARSession = useCallback(async () => {
+    // Only start if modal is NOT shown
+    if (showSafetyModal) return;
+
     setIsNavigating(true);
     try {
       const constraints = {
@@ -60,14 +64,27 @@ const ARNavigation: React.FC = () => {
         variant: "destructive",
       });
     }
-  }, [setIsNavigating, toast]);
+  }, [setIsNavigating, toast, showSafetyModal]);
 
-  // Effect to trigger start ONLY if modal is not shown
+  // Trigger camera start ONLY when modal is dismissed/not shown
   useEffect(() => {
     if (!showSafetyModal && !stream) {
       startARSession();
     }
   }, [showSafetyModal, stream, startARSession]);
+
+  // Cleanup
+  const stopCamera = useCallback(() => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setCameraReady(false);
+  }, [stream]);
+
+  useEffect(() => {
+    return () => stopCamera();
+  }, [stopCamera]);
 
   // Navigation Simulation
   useEffect(() => {
@@ -96,21 +113,9 @@ const ARNavigation: React.FC = () => {
     return () => clearInterval(interval);
   }, [isNavigating, destination, cameraReady]);
 
-  const stopCamera = useCallback(() => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-    setCameraReady(false);
-  }, [stream]);
-
-  useEffect(() => {
-    return () => stopCamera();
-  }, [stopCamera]);
-
   const handleSafetyAccept = () => {
     setShowSafetyModal(false);
-    // Camera will start automatically via the useEffect above when showSafetyModal becomes false
+    // The useEffect above will detect this change and start the camera
   };
 
   const handleCloseCamera = useCallback(() => {
@@ -120,6 +125,7 @@ const ARNavigation: React.FC = () => {
   }, [stopCamera, setIsNavigating, navigate]);
 
   const getDirectionArrow = () => {
+    // ... (Arrow logic remains the same)
     const arrowStyle = "drop-shadow-[0_4px_8px_rgba(0,0,0,0.5)]";
     const labelStyle = "text-white font-bold text-2xl mt-6 bg-black/60 px-6 py-2 rounded-xl backdrop-blur-md shadow-lg border border-white/10";
     
@@ -168,7 +174,7 @@ const ARNavigation: React.FC = () => {
 
   return (
     <div className="fixed inset-0 bg-black mobile-container">
-      {/* Safety Warning Modal - Highest Z-Index */}
+      {/* Safety Warning Modal - Rendered Conditionally */}
       {showSafetyModal && (
         <ARSafetyModal onAccept={handleSafetyAccept} onCancel={() => navigate('/home')} />
       )}
@@ -212,7 +218,7 @@ const ARNavigation: React.FC = () => {
           />
         )}
 
-        {/* Loading Spinner */}
+        {/* Loading Spinner - Only show if modal is gone and camera not ready */}
         {!cameraReady && !cameraError && !showSafetyModal && (
           <div className="absolute inset-0 flex flex-col items-center justify-center z-30 bg-background/10 backdrop-blur-sm">
             <div className="w-16 h-16 border-4 border-white/30 border-t-primary rounded-full animate-spin mb-4 shadow-xl" />

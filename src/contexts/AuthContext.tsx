@@ -22,6 +22,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
 
   const login = async (studentId: string, password: string): Promise<boolean> => {
+    // Simulated login - in production this would validate against backend
     if (studentId && password) {
       setUser({
         id: '1',
@@ -44,8 +45,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = () => {
-    // CRITICAL: Reset AR safety warning preference on logout
-    // This ensures the next user (or re-login) sees the warning again.
+    // CRITICAL FIX: Clear the safety warning preference on logout
+    // This ensures the warning pops up again for the next user/session
     localStorage.removeItem('arSafetyAccepted');
     setUser(null);
   };
