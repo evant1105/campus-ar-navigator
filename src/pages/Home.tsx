@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Navigation, Map, Clock, Building, ChevronRight, Mic } from 'lucide-react';
+import { Search, Navigation, Map, Clock, Building, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigation } from '@/contexts/NavigationContext';
@@ -10,7 +10,7 @@ import LocationCard from '@/components/LocationCard';
 const popularDestinations = [
   { id: 'lib', name: 'Library', icon: Building },
   { id: 'cafe', name: 'Cafeteria', icon: Building },
-  { id: 'lt3', name: 'Lecture Theatre 3', icon: Building },
+  { id: 'lt3', name: 'Lecture Hall', icon: Building },
 ];
 
 const Home: React.FC = () => {
@@ -31,99 +31,123 @@ const Home: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24 mobile-container">
-      {/* Header */}
-      <div className="bg-primary px-5 pt-14 pb-10 rounded-b-3xl">
-        <h1 className="text-lg font-bold text-primary-foreground">
-          MyCampus AR Wayfinder
-        </h1>
-        <p className="text-primary-foreground/80 text-sm mt-1">
-          {getGreeting()}, {user?.name?.split(' ')[0] || 'Guest'}! 👋
-        </p>
+    <div className="min-h-screen bg-background pb-28 mobile-container">
+      {/* Expanded Header */}
+      <div className="bg-primary px-6 pt-16 pb-12 rounded-b-[2.5rem] shadow-lg relative z-10">
+        <div className="flex justify-between items-start">
+          <div>
+            <p className="text-primary-foreground/80 text-sm font-medium mb-1">
+              {getGreeting()}
+            </p>
+            <h1 className="text-2xl font-bold text-primary-foreground tracking-tight">
+              {user?.name?.split(' ')[0] || 'Guest'}! 👋
+            </h1>
+          </div>
+          {user?.avatar && (
+            <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm border-2 border-white/30" />
+          )}
+        </div>
       </div>
 
-      {/* Main Content */}
-      <div className="px-5 -mt-4 space-y-5">
-        {/* Quick Actions */}
-        <div className="space-y-3">
-          <Button
-            onClick={() => navigate('/search')}
-            variant="hero"
-            className="w-full justify-start gap-3"
-          >
-            <Search className="w-5 h-5" />
-            Search Destination
-          </Button>
+      {/* Main Content Layered Over Header */}
+      <div className="px-6 -mt-6 relative z-20 space-y-8">
+        
+        {/* Search & Actions Card */}
+        <div className="bg-card rounded-3xl p-2 shadow-xl shadow-black/5 border border-border/50">
+          <div className="space-y-2">
+            <Button
+              onClick={() => navigate('/search')}
+              variant="ghost"
+              className="w-full justify-start gap-3 h-14 px-4 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-2xl"
+            >
+              <Search className="w-5 h-5" />
+              <span className="text-base font-normal">Search Destination...</span>
+            </Button>
 
-          <Button
-            onClick={() => navigate('/ar')}
-            variant="warning"
-            className="w-full justify-start gap-3 h-14"
-          >
-            <Navigation className="w-5 h-5" />
-            Start AR Navigation
-          </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                onClick={() => navigate('/ar')}
+                className="w-full justify-center gap-2 h-14 rounded-2xl font-semibold shadow-md active:scale-95 transition-all"
+                variant="default" // Using primary color
+              >
+                <Navigation className="w-5 h-5 fill-current" />
+                AR Nav
+              </Button>
 
-          <Button
-            onClick={() => navigate('/map')}
-            variant="ghost"
-            className="w-full justify-start gap-3 text-foreground font-semibold"
-          >
-            <Map className="w-5 h-5" />
-            View Campus Map
-          </Button>
-        </div>
-
-        {/* Next Class Card */}
-        <div className="bg-card rounded-2xl border border-border p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-primary mb-3">
-            <Clock className="w-4 h-4" />
-            <span className="text-sm font-medium">Next Class</span>
+              <Button
+                onClick={() => navigate('/map')}
+                variant="secondary"
+                className="w-full justify-center gap-2 h-14 rounded-2xl font-semibold bg-secondary hover:bg-secondary/80 active:scale-95 transition-all"
+              >
+                <Map className="w-5 h-5" />
+                Map View
+              </Button>
+            </div>
           </div>
-          <h3 className="font-semibold text-foreground text-lg">
-            UI/UX Design and Development
-          </h3>
-          <p className="text-sm text-muted-foreground mt-1">
-            LT-5 • North Building • Level 4
-          </p>
-          <p className="text-sm text-muted-foreground">
-            10:00 AM - 12:00 PM (in 45 mins)
-          </p>
-          <button className="flex items-center gap-1 text-primary text-sm font-medium mt-3 hover:underline">
-            View Full Timetable
-            <ChevronRight className="w-4 h-4" />
-          </button>
         </div>
 
-        {/* Recent Places */}
-        <div>
-          <h2 className="font-semibold text-foreground mb-3">Recent Places</h2>
-          <div className="space-y-1">
+        {/* Next Class - Enhanced visual hierarchy */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="font-bold text-lg text-foreground">Up Next</h2>
+            <Button variant="link" className="text-primary h-auto p-0 font-semibold text-sm">
+              See All
+            </Button>
+          </div>
+          
+          <div className="bg-gradient-to-br from-card to-secondary/30 rounded-3xl border border-border/60 p-6 shadow-sm relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-10 -mt-10 group-hover:bg-primary/10 transition-colors" />
+            
+            <div className="flex items-center gap-2 text-primary font-bold text-xs uppercase tracking-wider mb-4">
+              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+              In 45 mins
+            </div>
+            
+            <h3 className="font-bold text-foreground text-xl mb-1 leading-tight">
+              UI/UX Design
+            </h3>
+            <p className="text-base text-muted-foreground mb-4">
+              Lecture Theatre 5 • North Building
+            </p>
+            
+            <div className="flex items-center justify-between pt-4 border-t border-border/50">
+              <p className="text-sm font-medium text-foreground">10:00 AM - 12:00 PM</p>
+              <button className="w-8 h-8 rounded-full bg-background border border-border flex items-center justify-center hover:bg-primary hover:border-primary hover:text-primary-foreground transition-all">
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Recent Places - Improved List */}
+        <div className="space-y-2">
+          <h2 className="font-bold text-lg text-foreground px-1">Recent</h2>
+          <div className="space-y-3">
             {recentPlaces.slice(0, 3).map((place) => (
               <LocationCard
                 key={place.id}
                 location={place}
-                variant="recent"
+                variant="default" // Using default large card for better touch targets
                 onClick={() => handleNavigateTo(place)}
               />
             ))}
           </div>
         </div>
 
-        {/* Popular Destinations */}
-        <div>
-          <h2 className="font-semibold text-foreground mb-3">Popular Destinations</h2>
-          <div className="grid grid-cols-3 gap-3">
+        {/* Quick Categories */}
+        <div className="pb-4">
+          <h2 className="font-bold text-lg text-foreground mb-4 px-1">Explore</h2>
+          <div className="grid grid-cols-3 gap-4">
             {popularDestinations.map(({ id, name, icon: Icon }) => (
               <button
                 key={id}
                 onClick={() => navigate('/search')}
-                className="flex flex-col items-center gap-2 p-4 rounded-xl border border-border bg-card hover:bg-muted/50 transition-colors"
+                className="flex flex-col items-center gap-3 p-4 rounded-2xl border border-border bg-card hover:bg-accent/50 active:scale-95 transition-all shadow-sm"
               >
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Icon className="w-5 h-5 text-primary" />
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                  <Icon className="w-6 h-6 text-primary" />
                 </div>
-                <span className="text-xs font-medium text-foreground text-center">{name}</span>
+                <span className="text-sm font-semibold text-foreground text-center">{name}</span>
               </button>
             ))}
           </div>
